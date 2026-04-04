@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chart JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: Arial;
+        }
+
+        .card {
+            border-radius: 10px;
+            padding: 20px;
+            color: white;
+        }
+
+        .blue { background: #007bff; }
+        .red { background: #dc3545; }
+        .green { background: #28a745; }
+    </style>
+</head>
+
+<body>
+
+<div class="container mt-5">
+
+    <h2 class="text-center mb-4">Fraud Detection Dashboard</h2>
+
+    <div class="row text-center mb-4">
+        <div class="col-md-4">
+            <div class="card blue">
+                <h5>Total Clicks</h5>
+                <h3>{{ total }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card red">
+                <h5>Fraud</h5>
+                <h3>{{ fraud }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card green">
+                <h5>Genuine</h5>
+                <h3>{{ genuine }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <canvas id="pieChart"></canvas>
+        </div>
+
+        <div class="col-md-6">
+            <canvas id="barChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let fraud = {{ fraud }};
+    let genuine = {{ genuine }};
+
+    // Pie Chart
+    new Chart(document.getElementById("pieChart"), {
+        type: 'pie',
+        data: {
+            labels: ['Genuine', 'Fraud'],
+            datasets: [{
+                data: [genuine, fraud],
+                backgroundColor: ['green', 'red']
+            }]
+        }
+    });
+
+    // Bar Chart
+    new Chart(document.getElementById("barChart"), {
+        type: 'bar',
+        data: {
+            labels: ['Genuine', 'Fraud'],
+            datasets: [{
+                data: [genuine, fraud],
+                backgroundColor: ['green', 'red']
+            }]
+        }
+    });
+
+    // Auto refresh
+    setInterval(() => {
+        location.reload();
+    }, 3000);
+</script>
+
+</body>
+</html>
