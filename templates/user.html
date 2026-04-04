@@ -2,46 +2,59 @@
 <html>
 <head>
     <title>Ad Viewer</title>
-</head>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            background: #f5f5f5;
+        }
 
-<body style="text-align:center; font-family:Arial;">
+        video {
+            width: 400px;
+            margin-top: 20px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
 
 <h2>Watch Advertisement</h2>
 
-<!-- ✅ SHOW USER IP -->
-<p><b>User IP:</b> {{ user_ip }}</p>
+<video controls>
+    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+</video>
 
-<!-- VIDEO -->
-<iframe width="400" height="250"
-src="https://www.youtube.com/embed/tgbNymZ7vqY"
-frameborder="0" allowfullscreen>
-</iframe>
-
-<br><br>
+<br>
 
 <button onclick="clickAd()">Click Ad</button>
 
-<p id="result" style="font-weight:bold;"></p>
-<p id="reason" style="color:red;"></p>
+<div id="result"></div>
 
 <script>
-let startTime = Date.now();
-
 function clickAd() {
-    let watchTime = (Date.now() - startTime) / 1000;
-
     fetch('/click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'watch_time=' + watchTime
+        method: 'POST'
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById("result").innerText = "Result: " + data.status;
-        document.getElementById("reason").innerText = "Reason: " + data.reason;
+        document.getElementById("result").innerHTML =
+            "IP: " + data.ip + "<br>" +
+            "Result: " + (data.fraud ? "FRAUD ❌" : "GENUINE ✅") + "<br>" +
+            "Reason: " + data.reason;
     });
-
-    startTime = Date.now();
 }
 </script>
 
