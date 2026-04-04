@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ad Viewer</title>
+</head>
+
+<body style="text-align:center; font-family:Arial;">
+
+<h2>Watch Advertisement</h2>
+
+<!-- ✅ SHOW USER IP -->
+<p><b>User IP:</b> {{ user_ip }}</p>
+
+<!-- VIDEO -->
+<iframe width="400" height="250"
+src="https://www.youtube.com/embed/tgbNymZ7vqY"
+frameborder="0" allowfullscreen>
+</iframe>
+
+<br><br>
+
+<button onclick="clickAd()">Click Ad</button>
+
+<p id="result" style="font-weight:bold;"></p>
+<p id="reason" style="color:red;"></p>
+
+<script>
+let startTime = Date.now();
+
+function clickAd() {
+    let watchTime = (Date.now() - startTime) / 1000;
+
+    fetch('/click', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'watch_time=' + watchTime
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("result").innerText = "Result: " + data.status;
+        document.getElementById("reason").innerText = "Reason: " + data.reason;
+    });
+
+    startTime = Date.now();
+}
+</script>
+
+</body>
+</html>
