@@ -28,27 +28,38 @@ def login():
     return render_template('login.html')
 
 
-# 📊 DASHBOARD
+# 📊 DASHBOARD (UPDATED WITH REASONS + GRAPH DATA)
 @app.route('/dashboard')
 def dashboard():
     total = 0
     fraud = 0
     genuine = 0
 
+    reason_count = {}
+
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 total += 1
+
                 if row["is_fraud"] == "1":
                     fraud += 1
+
+                    reason = row["reason"]
+                    if reason in reason_count:
+                        reason_count[reason] += 1
+                    else:
+                        reason_count[reason] = 1
+
                 else:
                     genuine += 1
 
     return render_template("dashboard.html",
                            total=total,
                            fraud=fraud,
-                           genuine=genuine)
+                           genuine=genuine,
+                           reasons=reason_count)
 
 
 # 👤 USER PAGE
@@ -57,7 +68,7 @@ def user():
     return render_template("user.html")
 
 
-# 🔥 CLICK LOGIC (FINAL PERFECT)
+# 🔥 CLICK LOGIC (FINAL)
 @app.route('/click', methods=['POST'])
 def click():
 
@@ -69,7 +80,6 @@ def click():
 
     print("USER IP:", ip)
 
-    # Initialize
     if ip not in user_data:
         user_data[ip] = {
             "clicked": False,
@@ -82,7 +92,7 @@ def click():
 
     # 🎯 FINAL LOGIC
 
-    # Too fast click (highest priority)
+    # Too fast click
     if last_click != 0 and time_diff < 3:
         is_fraud = 1
         reason = "Too fast click (bot)"
@@ -93,7 +103,7 @@ def click():
         reason = "Genuine (first click)"
         user_data[ip]["clicked"] = True
 
-    # Any repeated click
+    # Repeated click
     else:
         is_fraud = 1
         reason = "Repeated click from same IP"
