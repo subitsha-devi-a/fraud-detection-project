@@ -1,1 +1,1 @@
-ip,click_time,device,click_count,is_fraud,reason
+ip,click_time,time_diff,click_count,is_fraud,reason
