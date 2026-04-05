@@ -8,7 +8,7 @@
 
 <h2>Watch Advertisement</h2>
 
-<!-- 🎬 PREMIUM VIDEO -->
+<!-- 🎬 VIDEO -->
 <iframe width="420" height="240"
 src="https://www.youtube.com/embed/tgbNymZ7vqY?autoplay=1&mute=1&controls=1&rel=0"
 frameborder="0"
@@ -22,8 +22,6 @@ allowfullscreen>
     Click Ad
 </button>
 
-<div id="result" style="margin-top:20px; font-weight:bold;"></div>
-
 <script>
 function clickAd() {
     fetch('/click', {
@@ -31,10 +29,7 @@ function clickAd() {
     })
     .then(res => res.json())
     .then(data => {
-        document.getElementById("result").innerHTML =
-            "IP: " + data.ip + "<br>" +
-            "Result: " + (data.fraud ? "FRAUD ❌" : "GENUINE ✅") + "<br>" +
-            "Reason: " + data.reason;
+        // ✅ NO OUTPUT (REAL WORLD)
     });
 }
 </script>
