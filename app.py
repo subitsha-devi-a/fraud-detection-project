@@ -12,10 +12,10 @@ DATA_FILE = "data.csv"
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["ip", "click_time", "click_count", "is_fraud", "reason"])
+        writer.writerow(["ip", "click_time", "time_diff", "click_count", "is_fraud", "reason"])
 
 
-# LOGIN
+# 🔐 LOGIN
 @app.route('/')
 def home():
     return redirect('/login')
@@ -28,7 +28,7 @@ def login():
     return render_template('login.html')
 
 
-# DASHBOARD
+# 📊 DASHBOARD
 @app.route('/dashboard')
 def dashboard():
     total = 0
@@ -51,38 +51,68 @@ def dashboard():
                            genuine=genuine)
 
 
-# USER PAGE
+# 👤 USER PAGE
 @app.route('/user')
 def user():
     return render_template("user.html")
 
 
-# CLICK LOGIC
+# 🔥 CLICK LOGIC (FINAL PERFECT)
 @app.route('/click', methods=['POST'])
 def click():
 
     current_time = time.time()
 
-    # ✅ FIXED REAL IP
+    # ✅ REAL IP (Render fix)
     raw_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     ip = raw_ip.split(',')[0].strip()
 
     print("USER IP:", ip)
 
-    # 🎯 FRAUD LOGIC (FINAL)
+    # Initialize
     if ip not in user_data:
-        user_data[ip] = 1
+        user_data[ip] = {
+            "clicked": False,
+            "last_click": 0,
+            "count": 0
+        }
+
+    last_click = user_data[ip]["last_click"]
+    time_diff = current_time - last_click if last_click != 0 else 999
+
+    # 🎯 FINAL LOGIC
+
+    # Too fast click (highest priority)
+    if last_click != 0 and time_diff < 3:
+        is_fraud = 1
+        reason = "Too fast click (bot)"
+
+    # First click
+    elif not user_data[ip]["clicked"]:
         is_fraud = 0
-        reason = "Genuine user (first click)"
+        reason = "Genuine (first click)"
+        user_data[ip]["clicked"] = True
+
+    # Any repeated click
     else:
-        user_data[ip] += 1
         is_fraud = 1
         reason = "Repeated click from same IP"
+
+    # Update
+    user_data[ip]["last_click"] = current_time
+    user_data[ip]["count"] += 1
 
     # Save to CSV
     with open(DATA_FILE, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([ip, current_time, user_data[ip], is_fraud, reason])
+        writer.writerow([
+            ip,
+            current_time,
+            round(time_diff, 2),
+            user_data[ip]["count"],
+            is_fraud,
+            reason
+        ])
 
     return jsonify({
         "fraud": is_fraud,
@@ -91,6 +121,5 @@ def click():
     })
 
 
-# RUN
 if __name__ == "__main__":
     app.run(debug=True)
