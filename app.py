@@ -1,18 +1,39 @@
 from flask import Flask, render_template, request, jsonify, redirect
 import time
-import csv
+import sqlite3
 import os
+import pickle
 
 app = Flask(__name__)
 
-user_data = {}
-DATA_FILE = "data.csv"
+# 🔥 LOAD ML MODEL
+if os.path.exists("model.pkl"):
+    model = pickle.load(open("model.pkl", "rb"))
+else:
+    model = None
 
-# Create CSV if not exists
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow(["ip", "click_time", "time_diff", "click_count", "is_fraud", "reason"])
+# 🔥 INIT DATABASE
+def init_db():
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS clicks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip TEXT,
+            time REAL,
+            time_diff REAL,
+            click_count INTEGER,
+            is_fraud INTEGER,
+            reason TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# 🔥 STORE SESSION DATA
+user_data = {}
 
 
 # 🔐 LOGIN
@@ -28,32 +49,24 @@ def login():
     return render_template('login.html')
 
 
-# 📊 DASHBOARD (UPDATED WITH REASONS + GRAPH DATA)
+# 📊 DASHBOARD
 @app.route('/dashboard')
 def dashboard():
-    total = 0
-    fraud = 0
-    genuine = 0
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    rows = c.execute("SELECT is_fraud, reason FROM clicks").fetchall()
+    conn.close()
+
+    total = len(rows)
+    fraud = sum(1 for r in rows if r[0] == 1)
+    genuine = total - fraud
 
     reason_count = {}
-
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                total += 1
-
-                if row["is_fraud"] == "1":
-                    fraud += 1
-
-                    reason = row["reason"]
-                    if reason in reason_count:
-                        reason_count[reason] += 1
-                    else:
-                        reason_count[reason] = 1
-
-                else:
-                    genuine += 1
+    for r in rows:
+        if r[0] == 1:
+            reason = r[1]
+            reason_count[reason] = reason_count.get(reason, 0) + 1
 
     return render_template("dashboard.html",
                            total=total,
@@ -68,13 +81,13 @@ def user():
     return render_template("user.html")
 
 
-# 🔥 CLICK LOGIC (FINAL)
+# 🔥 CLICK LOGIC (FINAL HYBRID)
 @app.route('/click', methods=['POST'])
 def click():
 
     current_time = time.time()
 
-    # ✅ REAL IP (Render fix)
+    # ✅ REAL IP
     raw_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     ip = raw_ip.split(',')[0].strip()
 
@@ -82,7 +95,6 @@ def click():
 
     if ip not in user_data:
         user_data[ip] = {
-            "clicked": False,
             "last_click": 0,
             "count": 0
         }
@@ -90,39 +102,43 @@ def click():
     last_click = user_data[ip]["last_click"]
     time_diff = current_time - last_click if last_click != 0 else 999
 
-    # 🎯 FINAL LOGIC
+    user_data[ip]["count"] += 1
 
-    # Too fast click
+    # 🎯 HYBRID LOGIC
+
+    # Rule-based (PRIMARY)
     if last_click != 0 and time_diff < 3:
         is_fraud = 1
         reason = "Too fast click (bot)"
 
-    # First click
-    elif not user_data[ip]["clicked"]:
+    elif user_data[ip]["count"] == 1:
         is_fraud = 0
         reason = "Genuine (first click)"
-        user_data[ip]["clicked"] = True
 
-    # Repeated click
     else:
         is_fraud = 1
-        reason = "Repeated click from same IP"
+        reason = "Repeated click"
 
-    # Update
+    # ML validation (SECONDARY)
+    if model:
+        features = [[round(time_diff, 2), user_data[ip]["count"]]]
+        ml_pred = model.predict(features)[0]
+        reason += " + ML checked"
+
+    # UPDATE
     user_data[ip]["last_click"] = current_time
-    user_data[ip]["count"] += 1
 
-    # Save to CSV
-    with open(DATA_FILE, "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            ip,
-            current_time,
-            round(time_diff, 2),
-            user_data[ip]["count"],
-            is_fraud,
-            reason
-        ])
+    # 💾 SAVE TO DATABASE
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+
+    c.execute('''
+        INSERT INTO clicks (ip, time, time_diff, click_count, is_fraud, reason)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (ip, current_time, round(time_diff, 2), user_data[ip]["count"], is_fraud, reason))
+
+    conn.commit()
+    conn.close()
 
     return jsonify({
         "fraud": is_fraud,
