@@ -8,7 +8,6 @@
 
 <h2>Watch Advertisement</h2>
 
-<!-- 🎬 VIDEO -->
 <iframe width="420" height="240"
 src="https://www.youtube.com/embed/tgbNymZ7vqY?autoplay=1&mute=1&controls=1&rel=0"
 frameborder="0"
@@ -18,19 +17,13 @@ allowfullscreen>
 
 <br><br>
 
-<button onclick="clickAd()" style="padding:10px 20px; font-size:16px;">
-    Click Ad
-</button>
+<button onclick="clickAd()">Click Ad</button>
 
 <script>
 function clickAd() {
-    fetch('/click', {
-        method: 'POST'
-    })
+    fetch('/click', { method: 'POST' })
     .then(res => res.json())
-    .then(data => {
-        // ✅ NO OUTPUT (REAL WORLD)
-    });
+    .then(data => {});
 }
 </script>
 
